@@ -32,13 +32,6 @@ class Form(QWidget):
         self.move(self.settings.value("Position", QPoint(10, 10), type=QPoint))
         self.resize(self.settings.value("Size", QSize(100, 100), type=QSize))
 
-        # define timer and buffer
-        self.buffer = ""
-        self.timer = QTimer()
-        self.timer.setSingleShot(True)
-        self.timer.setInterval(10)
-        self.timer.timeout.connect(self.empty_buffer)
-
         # define port selection layout and widgets
         lay_select = QHBoxLayout()
         layout.addLayout(lay_select)
@@ -64,11 +57,12 @@ class Form(QWidget):
 
         # define serial port
         self.serial_port = QSerialPort()
+        self.buffer = bytearray()
 
     # search for available serial ports and fill the QComboBox
     def fill_port_selector(self):
         self.port_selector.clear()
-        self.port_selector.addItem("Port auswählen...")
+        self.port_selector.addItem("Select port...")
         port_list = QSerialPortInfo.availablePorts()
         for port in port_list:
             assert isinstance(port, QSerialPortInfo)
@@ -76,7 +70,7 @@ class Form(QWidget):
             self.port_selector.addItem(port_name, port)
 
         # append dummy port for local simulation
-        port_name = "/dev/pts/2 (Dummy)"
+        port_name = "/dev/pts/X (Dummy)"
         port = "Dummy"  # String to identify the dummy port
         self.port_selector.addItem(port_name, port)
 
@@ -130,7 +124,7 @@ class Form(QWidget):
         # local test dummy for use with socat
         # [socat -d -d pty,raw,echo=0,user=<username> pty,raw,echo=0,user=<username>]
         elif isinstance(port, str) and port == "Dummy":
-            self.serial_port.setPortName("/dev/pts/2")  # replace port number when needed
+            self.serial_port.setPortName("/dev/pts/3")  # replace port number when needed
             connected = self.serial_port.open(QIODevice.ReadWrite)
             self.inbox.append("Connection: " + str(connected))
             if connected:
@@ -145,12 +139,11 @@ class Form(QWidget):
     # This slot is called whenever new data is available for read.
     def read_serial(self):
         data = self.serial_port.read(self.serial_port.bytesAvailable())
-        assert isinstance(data, bytes)
-        for character in data:
-            self.buffer += str(int(character))
-            self.buffer += " "
-        self.timer.start()  # Start or restart the timer til the buffer is displayed. Therefore it's
-                            # possible to show one transmission in one line.
+        self.buffer += data
+        if len(self.buffer) > 5:
+            for character in self.buffer:
+                self.inbox.append(chr(character))
+            self.buffer.clear()
 
     # After timer times out, the buffer is shown and reset.
     def empty_buffer(self):
