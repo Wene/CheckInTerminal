@@ -59,6 +59,10 @@ class Form(QWidget):
         # define serial port
         self.serial_port = QSerialPort()
 
+        self.timer = QTimer()
+        self.timer.setInterval(1000)
+        self.count = 0
+
     # search for available serial ports and fill the QComboBox
     def fill_port_selector(self):
         self.port_selector.clear()
@@ -133,6 +137,8 @@ class Form(QWidget):
         self.port_selector.setEnabled(False)
         self.speed_selector.setEnabled(False)
         self.btn_connect.setEnabled(False)
+        self.timer.timeout.connect(self.clock)
+        self.timer.start()
 
         self.terminal = Terminal(self.serial_port)
         sequence = bytearray()
@@ -147,22 +153,12 @@ class Form(QWidget):
         self.terminal.write(b'Nickname: ')
         self.terminal.set_style('normal')
 
-    # After timer times out, the buffer is shown and reset.
-    def empty_buffer(self):
-        self.inbox.append(self.buffer)
-        self.buffer = ""
-
-    # This slot is called by pressing the btn_send. Sends Data to the terminal.
-    def send_data(self):
-        segments = self.input.text().split()
-        characters = bytearray()
-        for character in segments:
-            if character.isdigit():
-                segment = int(character)
-                if segment >= 0 and segment < 256:
-                    characters.append(segment)
-        if len(characters) > 0 and self.serial_port.isOpen():
-            self.serial_port.write(characters)
+    def clock(self):
+        x, y = self.terminal.get_cursor_pos()
+        self.terminal.set_cursor_pos(70, 1)
+        self.count += 1
+        self.terminal.write(bytearray(str(self.count), encoding='ascii'))
+        self.terminal.set_cursor_pos(x, y)
 
     # save settings
     def closeEvent(self, QCloseEvent):

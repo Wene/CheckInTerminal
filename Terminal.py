@@ -34,11 +34,30 @@ class Terminal:
         self.port.write(sequence)
 
     def get_cursor_pos(self):
+        self.port.readyRead.disconnect()
         sequence = bytearray()
         sequence.append(27)
         sequence += b'[6n'
         self.port.write(sequence)
-        self.port.readyr
+        sequence.clear()
+        while True:
+            self.port.waitForReadyRead(500)
+            data = self.port.read(self.port.bytesAvailable())
+            sequence += data
+            if sequence[0] != 27:    # something went wrong...
+                self.port.readyRead.connect(self.read_serial)
+                return 0, 0
+            if sequence[-1] == ord(b'R'):
+                break
+        sequence.pop(0)  # esc
+        sequence.pop(0)  # [
+        sequence.pop()   # R
+        string = sequence.decode('ascii')
+        fields = string.split(';')
+        y = int(fields.pop(0))
+        x = int(fields.pop(0))
+        self.port.readyRead.connect(self.read_serial)
+        return x, y
 
     def write_big(self, x, y, text):
         sequence = bytearray()
