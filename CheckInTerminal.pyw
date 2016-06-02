@@ -20,6 +20,7 @@
 from PyQt5.QtCore import *
 from PyQt5.QtSerialPort import *
 from PyQt5.QtWidgets import *
+from Terminal import Terminal
 
 
 class Form(QWidget):
@@ -57,7 +58,6 @@ class Form(QWidget):
 
         # define serial port
         self.serial_port = QSerialPort()
-        self.buffer = bytearray()
 
     # search for available serial ports and fill the QComboBox
     def fill_port_selector(self):
@@ -113,13 +113,9 @@ class Form(QWidget):
             self.serial_port.setBaudRate(speed)
             connected = self.serial_port.open(QIODevice.ReadWrite)
             self.inbox.append("Connection: " + str(connected))
-            if connected:
-                self.serial_port.readyRead.connect(self.read_serial)
-                self.port_selector.setEnabled(False)
-                self.speed_selector.setEnabled(False)
-                self.btn_connect.setEnabled(False)
-            else:
+            if not connected:
                 self.inbox.append("Error: " + self.serial_port.errorString())
+                return
 
         # local test dummy for use with socat
         # [socat -d -d pty,raw,echo=0,user=<username> pty,raw,echo=0,user=<username>]
@@ -127,23 +123,29 @@ class Form(QWidget):
             self.serial_port.setPortName("/dev/pts/3")  # replace port number when needed
             connected = self.serial_port.open(QIODevice.ReadWrite)
             self.inbox.append("Connection: " + str(connected))
-            if connected:
-                self.serial_port.readyRead.connect(self.read_serial)
-                self.port_selector.setEnabled(False)
-                self.speed_selector.setEnabled(False)
-                self.btn_connect.setEnabled(False)
-            else:
+            if not connected:
                 self.inbox.append("Error: " + self.serial_port.errorString())
+                return
                 # connection from the other side is made by [screen /dev/pts/3]
+        else:
+            return
 
-    # This slot is called whenever new data is available for read.
-    def read_serial(self):
-        data = self.serial_port.read(self.serial_port.bytesAvailable())
-        self.buffer += data
-        if len(self.buffer) > 5:
-            for character in self.buffer:
-                self.inbox.append(chr(character))
-            self.buffer.clear()
+        self.port_selector.setEnabled(False)
+        self.speed_selector.setEnabled(False)
+        self.btn_connect.setEnabled(False)
+
+        self.terminal = Terminal(self.serial_port)
+        sequence = bytearray()
+        sequence += b'Willkommen am CoSin 2016'
+        self.terminal.write_big(9, 5, sequence)
+        self.terminal.set_cursor_pos(24, 7)
+        self.terminal.set_style('underscore')
+        self.terminal.write(b'Projekt "CheckIn Terminal" Ruum42')
+        self.terminal.set_cursor_pos(1, 12)
+        self.terminal.set_style('normal')
+        self.terminal.set_style('bold')
+        self.terminal.write(b'Nickname: ')
+        self.terminal.set_style('normal')
 
     # After timer times out, the buffer is shown and reset.
     def empty_buffer(self):
