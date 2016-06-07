@@ -13,9 +13,33 @@ class Terminal:
         self.clear_screen()
         self.set_cursor_pos(1, 1)
 
+        self.buffer = bytearray()
+        self.command = bytearray()
+
     def read_serial(self):
         data = self.port.read(self.port.bytesAvailable())
-        self.port.write(data)
+        self.buffer += data
+        # search check buffer for escape sequence
+        pos = 0
+        while pos < len(self.buffer):
+            if self.buffer[pos:pos+2] == b'\x1b[':      # begin of escape sequence
+                begin = pos
+                end = pos
+                if self.buffer[pos+2:pos+3] == b'A':
+                    self.port.write(b'up')
+                    end = pos + 4
+                if self.buffer[pos+2:pos+3] == b'B':
+                    self.port.write(b'down')
+                    end = pos + 4
+                if self.buffer[pos+2:pos+3] == b'C':
+                    self.port.write(b'right')
+                    end = pos + 4
+                if self.buffer[pos+2:pos+3] == b'D':
+                    self.port.write(b'left')
+                    end = pos + 4
+                self.buffer = self.buffer[:begin] + self.buffer[end:]
+            pos += 1
+
 
     def clear_screen(self):
         sequence = bytearray()
@@ -46,7 +70,7 @@ class Terminal:
             sequence += data
             if sequence[0] != 27:    # something went wrong...
                 self.port.readyRead.connect(self.read_serial)
-                return 0, 0
+                return 0, 0                     # TODO: something doesn't work here...
             if sequence[-1] == ord(b'R'):
                 break
         sequence.pop(0)  # esc

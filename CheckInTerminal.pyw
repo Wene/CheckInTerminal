@@ -21,6 +21,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtSerialPort import *
 from PyQt5.QtWidgets import *
 from Terminal import Terminal
+from datetime import datetime
 
 
 class Form(QWidget):
@@ -61,7 +62,6 @@ class Form(QWidget):
 
         self.timer = QTimer()
         self.timer.setInterval(1000)
-        self.count = 0
 
     # search for available serial ports and fill the QComboBox
     def fill_port_selector(self):
@@ -156,8 +156,16 @@ class Form(QWidget):
     def clock(self):
         x, y = self.terminal.get_cursor_pos()
         self.terminal.set_cursor_pos(70, 1)
-        self.count += 1
-        self.terminal.write(bytearray(str(self.count), encoding='ascii'))
+        hour = datetime.now().hour
+        minute = datetime.now().minute
+        second = datetime.now().second
+        time = bytearray()
+        time += bytearray(str(hour).zfill(2), encoding='ascii')
+        time += b':'
+        time += bytearray(str(minute).zfill(2), encoding='ascii')
+        time += b':'
+        time += bytearray(str(second).zfill(2), encoding='ascii')
+        self.terminal.write(time)
         self.terminal.set_cursor_pos(x, y)
 
     # save settings
