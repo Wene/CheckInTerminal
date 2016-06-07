@@ -150,8 +150,9 @@ class Form(QWidget):
         self.terminal.set_cursor_pos(1, 12)
         self.terminal.set_style('normal')
         self.terminal.set_style('bold')
-        self.terminal.write(b'Nickname: ')
+        self.terminal.write(b'Nickname: [               ]')
         self.terminal.set_style('normal')
+        self.terminal.set_cursor_pos(12, 12)
 
     def clock(self):
         x, y = self.terminal.get_cursor_pos()

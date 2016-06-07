@@ -4,8 +4,12 @@ from PyQt5.QtCore import *
 from PyQt5.QtSerialPort import *
 
 
-class Terminal:
-    def __init__(self, serial_port):
+class Terminal(QObject):
+
+    buttonPressed = pyqtSignal(str)
+
+    def __init__(self, serial_port, parent=None):
+        super(Terminal, self).__init__(parent)
         assert(isinstance(serial_port, QSerialPort))
         self.port = serial_port
         self.port.readyRead.connect(self.read_serial)
@@ -14,7 +18,10 @@ class Terminal:
         self.set_cursor_pos(1, 1)
 
         self.buffer = bytearray()
+        self.written = 0
         self.command = bytearray()
+
+        self.buttonPressed.connect(self.print_key)
 
     def read_serial(self):
         data = self.port.read(self.port.bytesAvailable())
@@ -26,20 +33,39 @@ class Terminal:
                 begin = pos
                 end = pos
                 if self.buffer[pos+2:pos+3] == b'A':
-                    self.port.write(b'up')
+                    self.buttonPressed.emit('up')
                     end = pos + 4
                 if self.buffer[pos+2:pos+3] == b'B':
-                    self.port.write(b'down')
+                    self.buttonPressed.emit('down')
                     end = pos + 4
                 if self.buffer[pos+2:pos+3] == b'C':
-                    self.port.write(b'right')
+                    self.buttonPressed.emit('right')
                     end = pos + 4
                 if self.buffer[pos+2:pos+3] == b'D':
-                    self.port.write(b'left')
+                    self.buttonPressed.emit('left')
                     end = pos + 4
+                if len(self.buffer[pos+2:]) > 2:
+                    end = pos + 2
                 self.buffer = self.buffer[:begin] + self.buffer[end:]
             pos += 1
+        if self.written <= 15:
+            to_write = self.buffer[self.written:]
+            self.written = len(self.buffer)
+            self.write(to_write)
 
+
+    def print_key(self, key):
+        x, y = self.get_cursor_pos()
+        if key == 'left':
+            if x > 12:
+                self.port.write(b'\x1b[D \x1b[D')
+                self.buffer.pop()
+                self.written -= 1
+        if key == 'right':
+            if x < 26:
+                self.port.write(b'\x1b[C')
+                self.buffer += b' '
+                self.written += 1
 
     def clear_screen(self):
         sequence = bytearray()
