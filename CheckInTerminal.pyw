@@ -150,12 +150,12 @@ class Form(QWidget):
         self.terminal.set_cursor_pos(1, 12)
         self.terminal.set_style('normal')
         self.terminal.set_style('bold')
-        self.terminal.write(b'Nickname: [               ]')
+        self.terminal.write(b'Nickname: [                              ]')
         self.terminal.set_style('normal')
         self.terminal.set_cursor_pos(12, 12)
 
     def clock(self):
-        x, y = self.terminal.get_cursor_pos()
+        self.terminal.request_cursor_pos()
         self.terminal.set_cursor_pos(70, 1)
         hour = datetime.now().hour
         minute = datetime.now().minute
@@ -167,6 +167,9 @@ class Form(QWidget):
         time += b':'
         time += bytearray(str(second).zfill(2), encoding='ascii')
         self.terminal.write(time)
+        QThread.msleep(50)
+        qApp.processEvents()
+        x, y = self.terminal.get_last_known_coordinates()
         self.terminal.set_cursor_pos(x, y)
 
     # save settings
