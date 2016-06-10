@@ -141,12 +141,13 @@ class Form(QWidget):
         self.timer.start()
 
         self.terminal = Terminal(self.serial_port)
-        sequence = bytearray()
-        sequence += b'Willkommen am CoSin 2016'
-        self.terminal.write_big(9, 5, sequence)
-        self.terminal.set_cursor_pos(24, 7)
+        self.terminal.write_big(13, 4, b'CheckIn Terminal')
+        self.terminal.set_cursor_pos(28, 8)
         self.terminal.set_style('underscore')
-        self.terminal.write(b'Projekt "CheckIn Terminal" Ruum42')
+        year = datetime.now().year
+        greeter = bytearray(b'Willkommen zum CoSin ')
+        greeter += bytearray(str(year), encoding='ascii')
+        self.terminal.write(greeter)
         self.terminal.set_cursor_pos(1, 12)
         self.terminal.set_style('normal')
         self.terminal.set_style('bold')
