@@ -52,10 +52,10 @@ class Terminal(QObject):
         numbers = b'0123456789'
         parameters = list()
         while pos < len(self.buffer):
-            if self.buffer[pos] == b'\x1b':      # begin of escape sequence
+            if self.buffer[pos] == 27:                   # begin of escape sequence
                 begin = pos
                 end = pos
-                if self.buffer[pos+1] == b'[':
+                if len(self.buffer) > pos+1 and self.buffer[pos+1] == ord('['):       # second character of escape sequence
                     pos += 2
                     while len(self.buffer) > pos:
                         num = bytearray(b'')
