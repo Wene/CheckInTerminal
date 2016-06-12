@@ -153,7 +153,10 @@ class Form(QWidget):
         self.terminal.set_style('normal')
         self.terminal.set_style('bold')
         self.terminal.write(b'Nickname: [                              ]')
+        self.terminal.set_cursor_pos(1, 14)
+        self.terminal.write(b'[ ] AGB akzeptieren')
         self.terminal.set_style('normal')
+        self.terminal.write(b' (kann aus Zeitmangel nicht gelesen werden)')
         self.terminal.set_cursor_pos(12, 12)
 
     def clock(self):
@@ -170,8 +173,12 @@ class Form(QWidget):
         self.terminal.write(time)
         self.terminal.set_cursor_to_input()
 
-    def process_nick(self, name):
-        self.inbox.append(name)
+    def process_nick(self, name, agb):
+        if agb:
+            self.inbox.append(name + ' (AGB akzetiert)')
+        else:
+            self.inbox.append(name + ' (AGB nicht akzeptiert)')
+        self.terminal.set_agb_accepted(False)
 
     # save settings
     def closeEvent(self, QCloseEvent):

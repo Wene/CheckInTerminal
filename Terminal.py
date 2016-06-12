@@ -8,7 +8,7 @@ class Terminal(QObject):
 
     buttonPressed = pyqtSignal(str)
     gotCoordinates = pyqtSignal(int, int)
-    nameEntered = pyqtSignal(str)
+    nameEntered = pyqtSignal(str, bool)
 
     def __init__(self, serial_port, parent=None):
         super(Terminal, self).__init__(parent)
@@ -27,6 +27,8 @@ class Terminal(QObject):
 
         self.input_X = 12
         self.input_Y = 12
+
+        self.agb_accepted = False
 
         self.buttonPressed.connect(self.handle_key)
         self.gotCoordinates.connect(self.set_last_known_coordinates)
@@ -98,7 +100,7 @@ class Terminal(QObject):
                 character = self.buffer.pop(0)
                 if character == 13:
                     nick = str(self.nickname, encoding='ascii')
-                    self.nameEntered.emit(nick)
+                    self.nameEntered.emit(nick, self.agb_accepted)
                     self.nickname.clear()
                     self.set_cursor_pos(12, 12)
                     self.write(b'                              ')
@@ -127,6 +129,18 @@ class Terminal(QObject):
                 self.write(b'\x1b[C')
                 self.nickname += b' '
                 self.input_X = 12 + len(self.nickname)
+        if key == 'down':
+            self.set_agb_accepted(not self.agb_accepted)
+
+    def set_agb_accepted(self, agb):
+        self.set_cursor_pos(2, 14)
+        if agb:
+            self.write(b'X')
+            self.agb_accepted = True
+        else:
+            self.write(b' ')
+            self.agb_accepted = False
+        self.set_cursor_to_input()
 
     def clear_screen(self):
         self.port.write(b'\x1b[2J')
