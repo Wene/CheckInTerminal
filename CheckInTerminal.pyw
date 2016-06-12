@@ -141,6 +141,7 @@ class Form(QWidget):
         self.timer.start()
 
         self.terminal = Terminal(self.serial_port)
+        self.terminal.nameEntered.connect(self.process_nick)
         self.terminal.write_big(13, 4, b'CheckIn Terminal')
         self.terminal.set_cursor_pos(28, 8)
         self.terminal.set_style('underscore')
@@ -168,6 +169,9 @@ class Form(QWidget):
         time += bytearray(str(second).zfill(2), encoding='ascii')
         self.terminal.write(time)
         self.terminal.set_cursor_to_input()
+
+    def process_nick(self, name):
+        self.inbox.append(name)
 
     # save settings
     def closeEvent(self, QCloseEvent):

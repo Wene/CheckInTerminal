@@ -8,6 +8,7 @@ class Terminal(QObject):
 
     buttonPressed = pyqtSignal(str)
     gotCoordinates = pyqtSignal(int, int)
+    nameEntered = pyqtSignal(str)
 
     def __init__(self, serial_port, parent=None):
         super(Terminal, self).__init__(parent)
@@ -48,7 +49,7 @@ class Terminal(QObject):
         text = bytearray()
         # search check buffer for escape sequence
         pos = 0
-        delimiter = b'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+        delimiter = b'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ~'
         numbers = b'0123456789'
         parameters = list()
         while pos < len(self.buffer):
@@ -59,12 +60,12 @@ class Terminal(QObject):
                     pos += 2
                     while len(self.buffer) > pos:
                         num = bytearray(b'')
-                        while self.buffer[pos] in numbers:
+                        while len(self.buffer) > pos and self.buffer[pos] in numbers:
                             num.append(self.buffer[pos])
                             pos += 1
                         if len(num) > 0:
                             parameters.append(int(num))
-                        if self.buffer[pos] == 59:          # ';'
+                        if len(self.buffer) > pos and self.buffer[pos] == 59:          # ';'
                             pos += 1
                             continue
                         else:
@@ -94,18 +95,26 @@ class Terminal(QObject):
                 pos += 1
 
             elif len(self.buffer) > 0:
-                text.append(self.buffer.pop(0))
+                character = self.buffer.pop(0)
+                if character == 13:
+                    nick = str(self.nickname, encoding='ascii')
+                    self.nameEntered.emit(nick)
+                    self.nickname.clear()
+                    self.set_cursor_pos(12, 12)
+                    self.write(b'                              ')
+                    self.set_cursor_pos(12, 12)
+                    self.input_X = 12
+                elif character == 127:  #
+                    self.buttonPressed.emit('left')
+                elif character < 32:
+                    pass
+                else:
+                    text.append(character)
 
         if len(text) > 0 and len(self.nickname) < 30:
             self.write(text)
             self.nickname += text
             self.input_X = 12 + len(self.nickname)
-
-        # if self.written < 30:
-        #     to_write = self.buffer[self.written:]
-        #     self.written = len(self.buffer)
-        #     self.write(to_write)
-        #     self.input_X = 12 + self.written
 
     def handle_key(self, key):
         if key == 'left':
